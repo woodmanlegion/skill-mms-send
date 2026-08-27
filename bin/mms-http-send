@@ -395,63 +395,92 @@ def main():
         print(json.dumps(out, indent=2))
         sys.exit(0)
 
-    if len(sys.argv) < 3:
-        print('Usage: mms-http-send <phone> <file> [mime]')
+    args = sys.argv[1:]
+    json_mode = '--json' in args
+    args = [a for a in args if a != '--json']
+
+    if len(args) < 2:
+        print('Usage: mms-http-send <phone> <file> [mime] [--json]')
         print('       mms-http-send --show-config')
         sys.exit(1)
 
-    to_num   = sys.argv[1]
-    filepath = sys.argv[2]
-    mime     = sys.argv[3] if len(sys.argv) > 3 else detect_mime(filepath)
+    to_num   = args[0]
+    filepath = args[1]
+    mime     = args[2] if len(args) > 2 else detect_mime(filepath)
 
-    if not os.path.exists(filepath):
-        print(f'File not found: {filepath}', file=sys.stderr)
+    def fail(error, code):
+        if json_mode:
+            print(json.dumps({'status': 'error', 'to': to_num,
+                              'file': filepath, 'error': error, 'error_code': code}))
+        else:
+            print(f'[mms] ERROR: {error}', file=sys.stderr)
         sys.exit(1)
 
+    if not os.path.exists(filepath):
+        fail(f'File not found: {filepath}', 'file_not_found')
+
     size_kb = os.path.getsize(filepath) / 1024
-    print(f'[mms] To:   {to_num}')
-    print(f'[mms] File: {filepath} ({size_kb:.1f} KB, {mime})')
-    print(f'[mms] Via:  {PROXY_HOST}:{PROXY_PORT} → {MMSC}')
+    if not json_mode:
+        print(f'[mms] To:   {to_num}')
+        print(f'[mms] File: {filepath} ({size_kb:.1f} KB, {mime})')
+        print(f'[mms] Via:  {PROXY_IP_FALLBACK}:{PROXY_PORT} → {MMSC}')
 
     # Resize image if needed; warn if audio/video is oversized
     if mime.startswith('image/'):
         filepath = shrink_image(filepath)
     elif os.path.getsize(filepath) > MMS_MAX_BYTES:
-        print(f'[mms] Warning: {size_kb:.0f}KB exceeds ~900KB limit — AT&T may reject', file=sys.stderr)
+        if not json_mode:
+            print(f'[mms] Warning: {size_kb:.0f}KB exceeds ~900KB limit — AT&T may reject', file=sys.stderr)
 
-    print('[mms] Encoding PDU...')
+    if not json_mode:
+        print('[mms] Encoding PDU...')
     pdu, txn = build_pdu(to_num, filepath, mime)
-    print(f'[mms] PDU size: {len(pdu)} bytes  txn-id: {txn}')
+    if not json_mode:
+        print(f'[mms] PDU size: {len(pdu)} bytes  txn-id: {txn}')
+        print(f'[mms] Posting via {MOBILE_IF}...')
 
-    print(f'[mms] Posting via {MOBILE_IF}...')
     try:
         response = post_pdu(pdu)
     except PermissionError:
-        print('[mms] SO_BINDTODEVICE requires root — re-run with su', file=sys.stderr)
-        sys.exit(1)
+        fail('SO_BINDTODEVICE requires root — re-run with su', 'permission_denied')
     except OSError as e:
-        print(f'[mms] Network error: {e}', file=sys.stderr)
-        sys.exit(1)
+        fail(f'Network error: {e}', 'network_error')
 
-    # Parse response status line
     status_line = response.split(b'\r\n')[0].decode(errors='replace')
-    print(f'[mms] Response: {status_line}')
+    header_end  = response.find(b'\r\n\r\n')
+    resp_body   = response[header_end + 4:] if header_end >= 0 else b''
+    confirmed   = len(resp_body) > 1 and resp_body[1] == 0x81
 
-    # Response body may contain WAP binary M-Send.conf PDU
-    header_end = response.find(b'\r\n\r\n')
-    if header_end >= 0:
-        resp_body = response[header_end + 4:]
-        if resp_body:
-            # Check message type byte: 0x81 = m-send-conf
-            if len(resp_body) > 1 and resp_body[1] == 0x81:
-                print('[mms] Carrier confirmed: m-send-conf received ✓')
-            else:
-                print(f'[mms] Response body ({len(resp_body)} bytes): {resp_body[:40].hex()}')
+    ok = b' 200 ' in status_line.encode() or b' 204 ' in status_line.encode()
 
-    if b' 200 ' in status_line.encode() or b' 204 ' in status_line.encode():
-        print('[mms] Sent successfully.')
+    if json_mode:
+        out = {
+            'status':      'sent' if ok else 'error',
+            'to':          to_num,
+            'file':        filepath,
+            'mime':        mime,
+            'pdu_bytes':   len(pdu),
+            'txn_id':      txn,
+            'http_status': status_line,
+        }
+        if confirmed:
+            out['carrier_confirmed'] = True
+        if not ok:
+            out['error'] = 'Unexpected HTTP status from MMSC'
+            out['error_code'] = 'mmsc_rejected'
+        print(json.dumps(out))
     else:
-        print('[mms] Unexpected HTTP status — check response above.')
+        print(f'[mms] Response: {status_line}')
+        if confirmed:
+            print('[mms] Carrier confirmed: m-send-conf received ✓')
+        elif resp_body:
+            print(f'[mms] Response body ({len(resp_body)} bytes): {resp_body[:40].hex()}')
+        if ok:
+            print('[mms] Sent successfully.')
+        else:
+            print('[mms] Unexpected HTTP status — check response above.')
+
+    if not ok:
         sys.exit(1)
 
 if __name__ == '__main__':

@@ -1,0 +1,62 @@
+{
+  "name": "mms_send",
+  "description": "Send an MMS attachment (audio, image, or video) to a phone number on rooted Android/Termux. Posts directly to the AT&T MMSC — fully headless, no screen or Google Messages required. Returns structured JSON when called with --json.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "to": {
+        "type": "string",
+        "description": "Recipient phone number in E.164 format.",
+        "examples": ["+17066228333"]
+      },
+      "file": {
+        "type": "string",
+        "description": "Absolute path to the file to send. Supported: mp3, m4a, ogg, aac, wav, jpg, png, gif, webp, mp4, 3gp, vcf, txt."
+      },
+      "mime": {
+        "type": "string",
+        "description": "MIME type override. Auto-detected from file extension if omitted.",
+        "examples": ["audio/mpeg", "image/jpeg", "video/mp4"]
+      }
+    },
+    "required": ["to", "file"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["sent", "error"],
+        "description": "Outcome of the send attempt."
+      },
+      "to": { "type": "string", "description": "Recipient number as supplied." },
+      "file": { "type": "string", "description": "Path of the file that was sent." },
+      "mime": { "type": "string", "description": "MIME type used." },
+      "pdu_bytes": { "type": "integer", "description": "Encoded PDU size in bytes." },
+      "txn_id": { "type": "string", "description": "WAP transaction ID embedded in the PDU." },
+      "http_status": { "type": "string", "description": "HTTP status line returned by MMSC." },
+      "error": { "type": "string", "description": "Error message (present only when status=error)." },
+      "error_code": {
+        "type": "string",
+        "description": "Machine-readable error code (present only when status=error).",
+        "enum": ["file_not_found", "network_error", "mmsc_rejected", "permission_denied", "encode_error"]
+      }
+    },
+    "required": ["status"]
+  },
+  "invoke": {
+    "type": "cli",
+    "command": "mms-http-send",
+    "args": ["{{to}}", "{{file}}", "{{mime?}}"],
+    "flags": ["--json"],
+    "config_check": "mms-http-send --show-config"
+  },
+  "_meta": {
+    "platform": "android",
+    "requires_root": false,
+    "carrier": "att",
+    "skill_dir": "~/.openclaw/workspace/skills/mms-send",
+    "config_file": "~/.config/mms-send",
+    "compat": ["mcp-1.0", "openai-functions"]
+  }
+}
