@@ -25,9 +25,14 @@ PROXY_IP_FALLBACK = "172.26.39.1"   # AT&T MMS proxy (resolved 2026-08-25)
 FFMPEG = "/data/data/com.termux/files/usr/bin/ffmpeg"
 MMS_MAX_BYTES = 900_000   # AT&T ~1MB limit; target 900KB for headroom
 
-# From-number: set OPENCLAW_MMS_FROM env var or hardcode your number here.
-# Format: E.164 without /TYPE=PLMN suffix (e.g. +17624346188)
-MMS_FROM = os.environ.get('OPENCLAW_MMS_FROM', '+17624346188')
+# From-number: set OPENCLAW_MMS_FROM in environment (e.g. in .bashrc).
+# Android 10+ blocks SIM number APIs; we cannot read it programmatically.
+_MMS_FROM_RAW = os.environ.get('OPENCLAW_MMS_FROM', '')
+if not _MMS_FROM_RAW:
+    print('[mms] Warning: OPENCLAW_MMS_FROM not set — defaulting to +17624346188', file=sys.stderr)
+    print('[mms] Set it in .bashrc: export OPENCLAW_MMS_FROM="+1XXXXXXXXXX"', file=sys.stderr)
+    _MMS_FROM_RAW = '+17624346188'
+MMS_FROM = _MMS_FROM_RAW
 
 # ── WAP binary field codes (OMA MMS 1.2, WAP-209) ───────────────────────────
 F_MESSAGE_TYPE   = 0x8C
