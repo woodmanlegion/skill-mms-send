@@ -75,16 +75,54 @@ mms-http-send +17066228333 /tmp/audio.mp3 audio/mpeg
 
 Exits 0 on success, non-zero with a clear error on failure.
 
-**Configuration (environment variables):**
+**Verify effective configuration:**
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENCLAW_MMS_FROM` | `+17624346188` | Your phone number (sender address in PDU) |
-| `OPENCLAW_MMS_INTERFACE` | `rmnet_data1` | Mobile data interface name |
-| `OPENCLAW_MMS_MMSC_PROXY` | `proxy.mobile.att.net` | AT&T WAP proxy host |
-| `OPENCLAW_MMS_MAX_BYTES` | `900000` | Auto-resize threshold for images |
+```bash
+mms-http-send --show-config
+```
 
-Set `OPENCLAW_MMS_FROM` to your number — it is the sender identity embedded in the PDU. The default is the original device number; override it to match your SIM.
+Prints a JSON object showing every setting and exactly which source it came from (`file`, `env:VARNAME`, or `default`).
+
+**Configuration — resolution order (highest priority first):**
+
+| Priority | Source | How to set |
+|----------|--------|-----------|
+| 1 | `~/.config/mms-send` | Edit the file directly — see [Configuration File](#configuration-file) |
+| 2 | `OPENCLAW_MMS_FROM` env var | `export OPENCLAW_MMS_FROM="+1XXXXXXXXXX"` in `.bashrc` |
+| 3 | `PHONE_NUMBER` env var | `export PHONE_NUMBER="+1XXXXXXXXXX"` in `.bashrc` |
+| 4 | Built-in default | Warns on stderr; edit the config file to fix |
+
+**Config file keys and their env overrides:**
+
+| Config key | Env override | Default | Description |
+|-----------|-------------|---------|-------------|
+| `FROM_NUMBER` | `OPENCLAW_MMS_FROM`, `PHONE_NUMBER` | `+17624346188` | Your SIM's E.164 number |
+| `INTERFACE` | `OPENCLAW_MMS_INTERFACE` | `rmnet_data1` | Mobile data interface |
+| `MMSC` | `OPENCLAW_MMS_MMSC` | `http://mmsc.mobile.att.net` | AT&T MMSC endpoint |
+| `PROXY_IP` | `OPENCLAW_MMS_PROXY_IP` | `172.26.39.1` | WAP proxy (pre-resolved) |
+| `PROXY_PORT` | `OPENCLAW_MMS_PROXY_PORT` | `80` | WAP proxy port |
+| `MAX_BYTES` | `OPENCLAW_MMS_MAX_BYTES` | `900000` | Image resize threshold |
+
+---
+
+## Configuration File
+
+`~/.config/mms-send` — INI-style, `KEY = value`, `#` comments. All fields optional; unset fields fall through to env vars then built-in defaults.
+
+```ini
+# ~/.config/mms-send
+FROM_NUMBER = +17624346188   # your SIM's E.164 number
+INTERFACE   = rmnet_data1    # ip link show | grep rmnet
+MMSC        = http://mmsc.mobile.att.net
+PROXY_IP    = 172.26.39.1    # pre-resolved AT&T WAP proxy
+PROXY_PORT  = 80
+MAX_BYTES   = 900000         # images auto-resize above this; audio/video do not
+```
+
+After editing, verify with:
+```bash
+mms-http-send --show-config
+```
 
 ---
 

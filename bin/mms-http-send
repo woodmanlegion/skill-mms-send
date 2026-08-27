@@ -9,30 +9,87 @@ Usage:
   mms-http-send <phone> <file> [mime-type]
   mms-http-send +17066228333 /sdcard/DCIM/photo.jpg
   mms-http-send +17066228333 /sdcard/audio.m4a audio/mp4
-
-Requires: root (for SO_BINDTODEVICE on mobile interface)
+  mms-http-send --show-config          # print effective config as JSON and exit
 """
 
-import sys, os, time, random, string, subprocess
+import sys, os, time, random, string, subprocess, json
 
-# ── AT&T MMS config ──────────────────────────────────────────────────────────
-MMSC       = "http://mmsc.mobile.att.net"
-PROXY_HOST = "proxy.mobile.att.net"
-PROXY_PORT = 80
-MOBILE_IF  = "rmnet_data1"
-PROXY_IP_FALLBACK = "172.26.39.1"   # AT&T MMS proxy (resolved 2026-08-25)
+# ── Configuration resolution ──────────────────────────────────────────────────
+# Priority (highest first):
+#   1. ~/.config/mms-send  (INI-style key=value, # comments)
+#   2. OPENCLAW_MMS_FROM env var
+#   3. PHONE_NUMBER env var
+#   4. Built-in default (warns on stderr)
 
-FFMPEG = "/data/data/com.termux/files/usr/bin/ffmpeg"
-MMS_MAX_BYTES = 900_000   # AT&T ~1MB limit; target 900KB for headroom
+CONFIG_FILE = os.path.expanduser('~/.config/mms-send')
+_BUILTIN = {
+    'from_number': '+17624346188',
+    'interface':   'rmnet_data1',
+    'mmsc':        'http://mmsc.mobile.att.net',
+    'proxy_ip':    '172.26.39.1',
+    'proxy_port':  '80',
+    'max_bytes':   '900000',
+}
 
-# From-number: set OPENCLAW_MMS_FROM in environment (e.g. in .bashrc).
-# Android 10+ blocks SIM number APIs; we cannot read it programmatically.
-_MMS_FROM_RAW = os.environ.get('OPENCLAW_MMS_FROM', '')
-if not _MMS_FROM_RAW:
-    print('[mms] Warning: OPENCLAW_MMS_FROM not set — defaulting to +17624346188', file=sys.stderr)
-    print('[mms] Set it in .bashrc: export OPENCLAW_MMS_FROM="+1XXXXXXXXXX"', file=sys.stderr)
-    _MMS_FROM_RAW = '+17624346188'
-MMS_FROM = _MMS_FROM_RAW
+def _load_config_file(path):
+    """Parse KEY = value config file; returns dict of lowercase keys."""
+    cfg = {}
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                if '=' in line:
+                    k, _, v = line.partition('=')
+                    cfg[k.strip().lower()] = v.strip()
+    except FileNotFoundError:
+        pass
+    return cfg
+
+def _resolve_config():
+    """Return (config_dict, sources_dict) with per-key provenance."""
+    file_cfg = _load_config_file(CONFIG_FILE)
+    cfg, sources = {}, {}
+
+    def pick(key, env_keys=(), warn_default=False):
+        if key in file_cfg:
+            cfg[key] = file_cfg[key]
+            sources[key] = f'file:{CONFIG_FILE}'
+            return
+        for env_key in env_keys:
+            val = os.environ.get(env_key, '').strip()
+            if val:
+                cfg[key] = val
+                sources[key] = f'env:{env_key}'
+                return
+        if warn_default and key == 'from_number':
+            print(f'[mms] Warning: FROM_NUMBER not set in {CONFIG_FILE}, '
+                  'OPENCLAW_MMS_FROM, or PHONE_NUMBER — using built-in default.',
+                  file=sys.stderr)
+            print(f'[mms] Edit {CONFIG_FILE} and set: FROM_NUMBER = +1XXXXXXXXXX',
+                  file=sys.stderr)
+        cfg[key] = _BUILTIN[key]
+        sources[key] = 'default'
+
+    pick('from_number', ('OPENCLAW_MMS_FROM', 'PHONE_NUMBER'), warn_default=True)
+    pick('interface',   ('OPENCLAW_MMS_INTERFACE',))
+    pick('mmsc',        ('OPENCLAW_MMS_MMSC',))
+    pick('proxy_ip',    ('OPENCLAW_MMS_PROXY_IP',))
+    pick('proxy_port',  ('OPENCLAW_MMS_PROXY_PORT',))
+    pick('max_bytes',   ('OPENCLAW_MMS_MAX_BYTES',))
+
+    return cfg, sources
+
+_CFG, _SOURCES = _resolve_config()
+
+FFMPEG        = '/data/data/com.termux/files/usr/bin/ffmpeg'
+MMS_FROM      = _CFG['from_number']
+MOBILE_IF     = _CFG['interface']
+MMSC          = _CFG['mmsc']
+PROXY_IP_FALLBACK = _CFG['proxy_ip']
+PROXY_PORT    = int(_CFG['proxy_port'])
+MMS_MAX_BYTES = int(_CFG['max_bytes'])
 
 # ── WAP binary field codes (OMA MMS 1.2, WAP-209) ───────────────────────────
 F_MESSAGE_TYPE   = 0x8C
@@ -328,8 +385,19 @@ def detect_mime(path):
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
+    if len(sys.argv) >= 2 and sys.argv[1] == '--show-config':
+        out = {
+            'config': {k: _CFG[k] for k in sorted(_CFG)},
+            'sources': {k: _SOURCES[k] for k in sorted(_SOURCES)},
+            'config_file': CONFIG_FILE,
+            'config_file_exists': os.path.exists(CONFIG_FILE),
+        }
+        print(json.dumps(out, indent=2))
+        sys.exit(0)
+
     if len(sys.argv) < 3:
         print('Usage: mms-http-send <phone> <file> [mime]')
+        print('       mms-http-send --show-config')
         sys.exit(1)
 
     to_num   = sys.argv[1]

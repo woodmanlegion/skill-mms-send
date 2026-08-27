@@ -40,6 +40,14 @@ mms-audio        →  use when input is text, not a file (generates speech first
 
 ---
 
+## Inspect Configuration First (if uncertain)
+
+```bash
+mms-http-send --show-config
+```
+
+Returns JSON with every setting and its source (`file:~/.config/mms-send`, `env:VARNAME`, or `default`). Check `from_number` source before sending — if it shows `default`, the sender identity may be wrong and the recipient may not receive the message. Edit `~/.config/mms-send` to fix.
+
 ## Call Pattern
 
 ```bash
@@ -65,7 +73,7 @@ mms-audio +17066228333 "Your spoken message here"
 |---|---|---|
 | `curl error` / network timeout | "Mobile data seems off — is airplane mode on?" | Ask user to enable mobile data; retry |
 | HTTP 4xx from MMSC | "Carrier proxy rejected the message" | Check `PROXY_IP_FALLBACK`; try `mms-send-smart` |
-| Sent OK but recipient didn't receive | "Sent — may be a from-number mismatch. Is `OPENCLAW_MMS_FROM` set correctly?" | Verify env var matches SIM number |
+| Sent OK but recipient didn't receive | "Sent — may be a from-number mismatch." Run `--show-config`; if `from_number` source is `default`, fix `~/.config/mms-send` | Edit config file, set `FROM_NUMBER = +1XXXXXXXXXX` |
 | `Could not find Send button` (smart) | "Google Messages UI changed — switching to carrier-direct send" | Use `mms-http-send` |
 | `File not indexed` (smart) | "MediaStore indexing timed out — switching to carrier-direct send" | Use `mms-http-send` |
 | File too large (audio/video) | "File is over the 900 KB carrier limit — can I compress it?" | Use ffmpeg to reduce bitrate; retry |
