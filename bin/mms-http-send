@@ -25,6 +25,10 @@ PROXY_IP_FALLBACK = "172.26.39.1"   # AT&T MMS proxy (resolved 2026-08-25)
 FFMPEG = "/data/data/com.termux/files/usr/bin/ffmpeg"
 MMS_MAX_BYTES = 900_000   # AT&T ~1MB limit; target 900KB for headroom
 
+# From-number: set OPENCLAW_MMS_FROM env var or hardcode your number here.
+# Format: E.164 without /TYPE=PLMN suffix (e.g. +17624346188)
+MMS_FROM = os.environ.get('OPENCLAW_MMS_FROM', '+17624346188')
+
 # ── WAP binary field codes (OMA MMS 1.2, WAP-209) ───────────────────────────
 F_MESSAGE_TYPE   = 0x8C
 F_TRANSACTION_ID = 0x98
@@ -208,7 +212,7 @@ def build_pdu(to_number, filepath, mime):
     expiry = value_length(len(expiry_inner)) + expiry_inner
 
     to_addr   = (to_number if to_number.startswith('+') else '+' + to_number) + '/TYPE=PLMN'
-    from_addr = '+17624346188/TYPE=PLMN'
+    from_addr = MMS_FROM + '/TYPE=PLMN'
     from_es    = encoded_string(from_addr)
     from_inner = bytes([0x80]) + from_es
     from_field = bytes([F_FROM]) + value_length(len(from_inner)) + from_inner
