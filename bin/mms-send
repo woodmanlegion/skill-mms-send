@@ -1,0 +1,4 @@
+#!/bin/bash
+# OpenClaw/Termux MMS sender wrapper
+JAR="/data/data/com.termux/files/home/Projects/39_claude-mms-improvements/mms-build/build/MmsSender.jar"
+exec java -jar "$JAR" "$@"

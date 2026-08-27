@@ -1,0 +1,32 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# mms-calibrate - Helper to find tap coordinates for mms-send-auto
+# Usage: mms-calibrate
+
+SCREEN=$(su -c 'wm size' 2>/dev/null | grep -oE '[0-9]+x[0-9]+' || echo "1080x2460")
+echo "Screen size: $SCREEN"
+echo ""
+
+# Parse dimensions
+WIDTH=$(echo "$SCREEN" | cut -dx -f1)
+HEIGHT=$(echo "$SCREEN" | cut -dx -f2)
+
+echo "Default coordinates for ${WIDTH}x${HEIGHT}:"
+echo ""
+echo "1. Attachment button (bottom right): $((WIDTH * 5 / 6)),$((HEIGHT * 9 / 10))"
+echo "2. Menu item (Attach file): $((WIDTH / 2)),$((HEIGHT * 3 / 4))"
+echo "3. Downloads folder: $((WIDTH / 5)),$((HEIGHT / 6))"
+echo "4. File in list: $((WIDTH / 2)),$((HEIGHT / 4))"
+echo "5. Send button: $((WIDTH * 5 / 6)),$((HEIGHT * 9 / 10))"
+echo ""
+
+# Generate command
+echo "Recommended command:"
+echo "  mms-send-auto +PHONE FILE \\"
+echo "    --coords $((WIDTH * 5 / 6)),$((HEIGHT * 9 / 10)),$((WIDTH / 2)),$((HEIGHT * 3 / 4)),$((WIDTH / 5)),$((HEIGHT / 6)),$((WIDTH / 2)),$((HEIGHT / 4)),$((WIDTH * 5 / 6)),$((HEIGHT * 9 / 10))"
+echo ""
+
+# Test mode
+echo "To test coordinates:"
+echo "  su -c 'input tap X Y'"
+echo ""
+echo "Open Messages app and try tapping at suggested coordinates."
