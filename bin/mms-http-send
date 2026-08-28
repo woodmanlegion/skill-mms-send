@@ -87,9 +87,24 @@ FFMPEG        = '/data/data/com.termux/files/usr/bin/ffmpeg'
 MMS_FROM      = _CFG['from_number']
 MOBILE_IF     = _CFG['interface']
 MMSC          = _CFG['mmsc']
-PROXY_IP_FALLBACK = _CFG['proxy_ip']
 PROXY_PORT    = int(_CFG['proxy_port'])
 MMS_MAX_BYTES = int(_CFG['max_bytes'])
+
+# ── Proxy IP resolution ───────────────────────────────────────────────────────
+# Try DNS at runtime; fall back to cached IP from config if resolution fails.
+# The cached IP carries a resolution date — update config if sends start failing.
+PROXY_HOSTNAME = 'proxy.mobile.att.net'
+_CACHED_PROXY_IP = _CFG['proxy_ip']   # from ~/.config/mms-send, dated in config comment
+
+def _resolve_proxy_ip():
+    import socket
+    try:
+        ip = socket.getaddrinfo(PROXY_HOSTNAME, None)[0][4][0]
+        return ip, 'dns'
+    except Exception:
+        return _CACHED_PROXY_IP, 'cached'
+
+PROXY_IP_FALLBACK, _PROXY_IP_SOURCE = _resolve_proxy_ip()
 
 # ── WAP binary field codes (OMA MMS 1.2, WAP-209) ───────────────────────────
 F_MESSAGE_TYPE   = 0x8C
@@ -391,6 +406,9 @@ def main():
             'sources': {k: _SOURCES[k] for k in sorted(_SOURCES)},
             'config_file': CONFIG_FILE,
             'config_file_exists': os.path.exists(CONFIG_FILE),
+            'proxy_ip_resolved': PROXY_IP_FALLBACK,
+            'proxy_ip_source': _PROXY_IP_SOURCE,  # 'dns' or 'cached'
+            'proxy_hostname': PROXY_HOSTNAME,
         }
         print(json.dumps(out, indent=2))
         sys.exit(0)
