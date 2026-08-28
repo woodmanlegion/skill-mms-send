@@ -18,6 +18,34 @@ metadata:
 
 Send an MMS attachment — audio, image, or video — to any phone number from the terminal. No screen interaction, no app required.
 
+> **Platform:** Android/Termux only (rooted or unrooted, AT&T SIM). Before proceeding, confirm:
+> ```bash
+> [[ "$(uname -o)" == "Android" ]] && echo "OK" || echo "ERROR: not Android — skill unavailable here"
+> ```
+
+---
+
+## Agent Dispatch Guide
+
+> **For agent frameworks that load `AGENTS.md`** (OpenClaw and others as the standard evolves): the full dispatch guide — trigger conditions, tool priority, failure handling, and timing — is in [`AGENTS.md`](./AGENTS.md). The summary below is provided for frameworks that do not yet load it.
+
+**Activate this skill when the user asks to:**
+- send an audio / voice message / recording to a phone number
+- MMS a file to a number
+- send a photo or video via SMS/MMS
+
+**Do not activate for:**
+- plain text SMS → use `sms-message`
+- text-to-speech generation → use `mms-audio`
+- reading a received MMS → use `mms-fetch`
+- a URL rather than a local file → download it first
+
+**Required before calling:** phone number (E.164) and a local file path that exists.
+
+**Tool priority:** `mms-http-send` first (headless, no root, any screen state) → `mms-send-smart` fallback (non-AT&T carriers, needs screen unlocked).
+
+---
+
 ## Quick Start
 
 ```bash
@@ -25,6 +53,28 @@ mms-http-send +17066228333 /path/to/audio.mp3
 ```
 
 Encodes a WAP MMS PDU and posts it directly to the AT&T MMSC over the mobile data interface. Exits in 3–10 seconds. No UI. No Google Messages. Works while the screen is off and locked.
+
+---
+
+## Setup
+
+Scripts must be on your `PATH`. Options:
+
+```bash
+# Option A — add this repo's bin/ to PATH (add to .bashrc)
+export PATH="$PATH:/path/to/skill-mms-send/bin"
+
+# Option B — symlink into an existing PATH directory
+ln -s /path/to/skill-mms-send/bin/mms-http-send ~/.local/bin/mms-http-send
+
+# Option C — Termux (scripts already in ~/Scripts if installed via tclaw)
+# ~/Scripts is on PATH by default
+```
+
+**Termux dependencies:**
+```bash
+pkg install python curl ffmpeg termux-api
+```
 
 ---
 
@@ -209,6 +259,19 @@ Use only if `mms-send-smart` fails due to a Google Messages UI change. Requires 
 ## Why Not `SmsManager.sendMultimediaMessage()`?
 
 Android reserves that API for system apps. Non-system apps require user confirmation. `mms-http-send` bypasses the Android MMS stack entirely by implementing the carrier protocol directly. `mms-send-smart` works around the restriction by driving Google Messages (which has the system privilege) via intents and UI automation.
+
+---
+
+## Framework Compatibility
+
+| File | Purpose | Who reads it |
+|------|---------|-------------|
+| `SKILL.md` | Skill definition, usage, dispatch summary | All agent frameworks (pi, OpenClaw, others) |
+| `AGENTS.md` | Full dispatch guide (triggers, failure handling, timing) | OpenClaw; frameworks implementing the evolving AgentSkills standard |
+| `tool.json` | Machine-readable schema (MCP 1.0 / OpenAI-functions format) | OpenClaw; MCP-compatible runtimes |
+| `package.json` | Package manifest for `pi install git:...` | Pi |
+
+`tool.json` and `AGENTS.md` are retained even when a specific runtime ignores them — both target the converging cross-framework standard and serve as the forward-compatible contract for this skill.
 
 ---
 

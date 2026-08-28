@@ -1,0 +1,14 @@
+{
+  "name": "skill-mms-send",
+  "version": "1.0.0",
+  "description": "Send MMS attachments (audio, image, video) from Android/Termux via direct MMSC POST or UI automation. AT&T carrier. Fully headless primary path.",
+  "keywords": ["pi-package", "mms", "android", "termux", "sms"],
+  "license": "MIT",
+  "pi": {
+    "skills": ["./"]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/woodmanlegion/skill-mms-send"
+  }
+}

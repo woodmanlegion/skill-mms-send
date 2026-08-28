@@ -1,4 +1,4 @@
-#!/bin/bash
-# OpenClaw/Termux MMS sender wrapper
-JAR="/data/data/com.termux/files/home/Projects/39_claude-mms-improvements/mms-build/build/MmsSender.jar"
-exec java -jar "$JAR" "$@"
+#!/data/data/com.termux/files/usr/bin/bash
+# mms-send — dispatcher: delegates to mms-http-send (primary headless path)
+# Usage: mms-send <phone> <file> [mime] [--json]
+exec "$(dirname "$0")/mms-http-send" "$@"
