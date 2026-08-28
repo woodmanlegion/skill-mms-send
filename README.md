@@ -26,7 +26,7 @@ export PATH="$PATH:$(pwd)/skill-mms-send/bin"
 ## Quick test
 ```bash
 mms-http-send --show-config       # verify configuration
-mms-http-send +17066228333 /path/to/file.mp3
+mms-http-send +15558675309 /path/to/file.mp3
 ```
 
 ## Platform

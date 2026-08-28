@@ -23,7 +23,7 @@ import sys, os, time, random, string, subprocess, json
 
 CONFIG_FILE = os.path.expanduser('~/.config/mms-send')
 _BUILTIN = {
-    'from_number': '+17624346188',
+    'from_number': '',   # must be set in ~/.config/mms-send or PHONE_NUMBER env
     'interface':   'rmnet_data1',
     'mmsc':        'http://mmsc.mobile.att.net',
     'proxy_ip':    '172.26.39.1',

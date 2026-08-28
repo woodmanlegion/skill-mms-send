@@ -1,0 +1,8 @@
+# Local test and config files — contain real phone numbers, never commit
+*.local
+.env
+.env.*
+test-numbers
+test-numbers.conf
+config.local
+numbers.local

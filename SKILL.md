@@ -49,7 +49,7 @@ Send an MMS attachment — audio, image, or video — to any phone number from t
 ## Quick Start
 
 ```bash
-mms-http-send +17066228333 /path/to/audio.mp3
+mms-http-send +15558675309 /path/to/audio.mp3
 ```
 
 Encodes a WAP MMS PDU and posts it directly to the AT&T MMSC over the mobile data interface. Exits in 3–10 seconds. No UI. No Google Messages. Works while the screen is off and locked.
@@ -99,20 +99,20 @@ mms-http-send <phone> <file> [mime-type]
 ```
 
 **Arguments:**
-- `phone` — E.164 format (`+17066228333`)
+- `phone` — E.164 format (`+15558675309`)
 - `file` — local path; extension determines MIME type automatically
 - `mime-type` — optional override if extension is ambiguous
 
 **Examples:**
 ```bash
-mms-http-send +17066228333 /sdcard/voice.m4a
-mms-http-send +17066228333 /sdcard/photo.jpg
-mms-http-send +17066228333 /tmp/audio.mp3 audio/mpeg
+mms-http-send +15558675309 /sdcard/voice.m4a
+mms-http-send +15558675309 /sdcard/photo.jpg
+mms-http-send +15558675309 /tmp/audio.mp3 audio/mpeg
 ```
 
 **Expected output:**
 ```
-[mms] To:   +17066228333
+[mms] To:   +15558675309
 [mms] File: /sdcard/voice.m4a (42.1 KB, audio/mp4)
 [mms] Via:  proxy.mobile.att.net:80 → http://mmsc.mobile.att.net
 [mms] Encoding PDU...
@@ -146,7 +146,7 @@ Prints a JSON object showing every setting and exactly which source it came from
 
 | Config key | Env override | Default | Description |
 |-----------|-------------|---------|-------------|
-| `FROM_NUMBER` | `OPENCLAW_MMS_FROM`, `PHONE_NUMBER` | `+17624346188` | Your SIM's E.164 number |
+| `FROM_NUMBER` | `OPENCLAW_MMS_FROM`, `PHONE_NUMBER` | `+15550000000` | Your SIM's E.164 number |
 | `INTERFACE` | `OPENCLAW_MMS_INTERFACE` | `rmnet_data1` | Mobile data interface |
 | `MMSC` | `OPENCLAW_MMS_MMSC` | `http://mmsc.mobile.att.net` | AT&T MMSC endpoint |
 | `PROXY_IP` | `OPENCLAW_MMS_PROXY_IP` | `172.26.39.1` | WAP proxy (pre-resolved) |
@@ -161,7 +161,7 @@ Prints a JSON object showing every setting and exactly which source it came from
 
 ```ini
 # ~/.config/mms-send
-FROM_NUMBER = +17624346188   # your SIM's E.164 number
+FROM_NUMBER = +15550000000   # your SIM's E.164 number
 INTERFACE   = rmnet_data1    # ip link show | grep rmnet
 MMSC        = http://mmsc.mobile.att.net
 PROXY_IP    = 172.26.39.1    # pre-resolved AT&T WAP proxy

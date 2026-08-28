@@ -7,7 +7,7 @@
       "to": {
         "type": "string",
         "description": "Recipient phone number in E.164 format.",
-        "examples": ["+17066228333"]
+        "examples": ["+15558675309"]
       },
       "file": {
         "type": "string",

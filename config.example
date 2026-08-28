@@ -1,0 +1,12 @@
+# ~/.config/mms-send — example configuration
+# Copy relevant values to ~/.config/mms-send and fill in your real numbers.
+# ~/.config/mms-send is outside this repo and never committed.
+#
+# See SKILL.md for full documentation of each field.
+
+FROM_NUMBER = +15550000000           # your SIM's E.164 number
+INTERFACE   = rmnet_data1            # verify: ip link show | grep rmnet
+MMSC        = http://mmsc.mobile.att.net
+PROXY_IP    = 172.26.39.1            # AT&T WAP proxy pre-resolved IP
+PROXY_PORT  = 80
+MAX_BYTES   = 900000

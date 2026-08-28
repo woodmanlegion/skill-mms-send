@@ -52,13 +52,13 @@ Returns JSON with every setting and its source (`file:~/.config/mms-send`, `env:
 
 ```bash
 # Primary — any audio, image, or video file
-mms-http-send +17066228333 /path/to/file.mp3
+mms-http-send +15558675309 /path/to/file.mp3
 
 # Fallback — non-AT&T carrier or http-send fails
-mms-send-smart +17066228333 /path/to/file.mp3
+mms-send-smart +15558675309 /path/to/file.mp3
 
 # Text-to-speech then send (delegates to http-send internally)
-mms-audio +17066228333 "Your spoken message here"
+mms-audio +15558675309 "Your spoken message here"
 ```
 
 ---
