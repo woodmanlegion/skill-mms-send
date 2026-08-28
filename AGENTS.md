@@ -100,6 +100,18 @@ Do not time out before 35 seconds.
 
 ---
 
+## Framework Compatibility Notes
+
+| Framework | Status | Notes |
+|-----------|--------|-------|
+| OpenClaw | ✅ Native | Reads `SKILL.md` + `AGENTS.md` + `tool.json` |
+| Pi | ✅ Tested | Reads `SKILL.md` only; `AGENTS.md` retained for standard conformance |
+| Claude Code | ⏭️ Not targeted | Claude Code is used here as a coding agent, not an agentic harness. Plugin format (`skills/<name>/SKILL.md` inside a plugin dir) is structurally compatible but not pursued. Revisit if Claude Code skill discovery converges with the OpenClaw/Pi standard. |
+
+`AGENTS.md` is retained because the skill/agent standard is actively converging across frameworks. Pi's current non-conformance on `AGENTS.md` loading is noted; this file is the forward-compatible contract.
+
+---
+
 ## Context: Why Two Paths Exist
 
 **`mms-http-send`** implements OMA MMS 1.2 (WAP binary PDU) and POSTs directly to the AT&T MMSC via `curl --interface rmnet_data1`. It bypasses Android's MMS API entirely. No root, no screen, no app — just curl and Python. AT&T-specific (hardcoded proxy + MMSC).
