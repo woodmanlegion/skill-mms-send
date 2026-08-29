@@ -12,7 +12,7 @@ Usage:
   mms-http-send --show-config          # print effective config as JSON and exit
 """
 
-import sys, os, time, random, string, subprocess, json
+import sys, os, re, time, random, string, subprocess, json
 
 # ── Configuration resolution ──────────────────────────────────────────────────
 # Priority (highest first):
@@ -85,10 +85,37 @@ _CFG, _SOURCES = _resolve_config()
 
 FFMPEG        = '/data/data/com.termux/files/usr/bin/ffmpeg'
 MMS_FROM      = _CFG['from_number']
-MOBILE_IF     = _CFG['interface']
+MOBILE_IF     = _CFG['interface']          # explicit config value or default
+_INTERFACE_EXPLICIT = _SOURCES['interface'] != 'default'  # user set it → honour it exactly
 MMSC          = _CFG['mmsc']
 PROXY_PORT    = int(_CFG['proxy_port'])
 MMS_MAX_BYTES = int(_CFG['max_bytes'])
+
+# ── Interface auto-detection ──────────────────────────────────────────────────
+# When no explicit interface is configured, detect the active rmnet_data* at
+# send time so the script works across carrier data-channel rotations.
+
+def _detect_active_rmnet():
+    """Return first rmnet_data* interface that is UP and RUNNING, or None."""
+    try:
+        r = subprocess.run(['ifconfig'], capture_output=True, text=True, timeout=5)
+        current = None
+        for line in r.stdout.splitlines():
+            m = re.match(r'^(\S+):', line)
+            if m:
+                current = m.group(1)
+            if current and current.startswith('rmnet_data') and 'UP' in line and 'RUNNING' in line:
+                return current
+    except Exception:
+        pass
+    return None
+
+def _get_send_interface():
+    """Return the interface to use for this send, detecting if not configured."""
+    if _INTERFACE_EXPLICIT:
+        return MOBILE_IF
+    detected = _detect_active_rmnet()
+    return detected or MOBILE_IF
 
 # ── Proxy IP resolution ───────────────────────────────────────────────────────
 # Try DNS at runtime; fall back to cached IP from config if resolution fails.
@@ -316,8 +343,10 @@ def build_pdu(to_number, filepath, mime):
 
 CURL = '/data/data/com.termux/files/usr/bin/curl'
 
-def post_pdu(pdu, iface=MOBILE_IF):
+def post_pdu(pdu, iface=None):
     """Write PDU to temp file, POST via curl through carrier WAP proxy on mobile iface."""
+    if iface is None:
+        iface = _get_send_interface()
     import tempfile
     tmp = tempfile.NamedTemporaryFile(suffix='.pdu', delete=False)
     tmp.write(pdu)
@@ -401,11 +430,14 @@ def detect_mime(path):
 
 def main():
     if len(sys.argv) >= 2 and sys.argv[1] == '--show-config':
+        active_iface = _get_send_interface()
         out = {
             'config': {k: _CFG[k] for k in sorted(_CFG)},
             'sources': {k: _SOURCES[k] for k in sorted(_SOURCES)},
             'config_file': CONFIG_FILE,
             'config_file_exists': os.path.exists(CONFIG_FILE),
+            'interface_active': active_iface,
+            'interface_source': 'config' if _INTERFACE_EXPLICIT else 'auto-detect',
             'proxy_ip_resolved': PROXY_IP_FALLBACK,
             'proxy_ip_source': _PROXY_IP_SOURCE,  # 'dns' or 'cached'
             'proxy_hostname': PROXY_HOSTNAME,
@@ -455,7 +487,7 @@ def main():
     pdu, txn = build_pdu(to_num, filepath, mime)
     if not json_mode:
         print(f'[mms] PDU size: {len(pdu)} bytes  txn-id: {txn}')
-        print(f'[mms] Posting via {MOBILE_IF}...')
+        print(f'[mms] Posting via {_get_send_interface()}...')
 
     try:
         response = post_pdu(pdu)
