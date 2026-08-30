@@ -1,6 +1,6 @@
 {
   "name": "skill-mms-send",
-  "version": "2026.08.30_01",
+  "version": "2026.08.30_02",
   "description": "Send MMS attachments (audio, image, video) from Android/Termux via direct MMSC POST or UI automation. AT&T carrier. Fully headless primary path.",
   "keywords": ["pi-package", "mms", "android", "termux", "sms"],
   "license": "MIT",

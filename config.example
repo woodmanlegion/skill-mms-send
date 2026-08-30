@@ -5,7 +5,7 @@
 # See SKILL.md for full documentation of each field.
 
 FROM_NUMBER = +15550000000           # your SIM's E.164 number
-INTERFACE   = rmnet_data1            # verify: ip link show | grep rmnet
+# INTERFACE = rmnet_data1            # omit to auto-detect active rmnet; set explicitly only if auto-detect picks wrong interface
 MMSC        = http://mmsc.mobile.att.net
 PROXY_IP    = 172.26.39.1            # AT&T WAP proxy — cached YYYY-MM-DD; DNS tried first at runtime
 PROXY_PORT  = 80
