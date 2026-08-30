@@ -40,6 +40,33 @@ mms-audio        →  use when input is text, not a file (generates speech first
 
 ---
 
+## First Run / Configuration
+
+Config file: `~/.config/mms-send` (INI key=value, `#` comments).
+
+```ini
+# Required
+FROM_NUMBER = +15558675309    # your SIM E.164 number (sender identity on MMSC)
+
+# Optional — AT&T defaults; override for other carriers
+PROXY_IP = 172.26.39.1        # carrier WAP proxy; run: nslookup proxy.mobile.att.net
+MMSC = http://mmsc.mobile.att.net
+INTERFACE = rmnet_data1       # mobile data interface (auto-detected if omitted)
+```
+
+Create the file, then verify:
+
+```bash
+mms-http-send --show-config
+```
+
+If `from_number` source shows `default` → set `FROM_NUMBER` in the config file before sending.
+If `interface_source` shows `auto` → the interface is detected at send time from `ifconfig`.
+
+**Note:** `mms-http-send` requires mobile data active (`rmnet_data*` UP and RUNNING). WiFi alone won't reach the MMSC.
+
+---
+
 ## Inspect Configuration First (if uncertain)
 
 ```bash
